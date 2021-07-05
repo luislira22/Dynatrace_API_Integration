@@ -1,10 +1,12 @@
-import csv
 import json
 import urllib.request
+import pandas
+import os
 
 # Some environment variables
-PROD_TENANT = ""
-PROD_TENANT_API_TOKEN = ""
+from flatten_json import flatten
+
+
 
 
 # Api call works in the format PROD_TENANT + {Endpoint} + {Authorization}
@@ -44,4 +46,61 @@ def generic_api_call(endpoint, query_params_bool):
 # save_to_json('Example', api) - Write the result into JSON
 def save_to_json(filename, api_call):
     with open(filename + '.json', 'w') as file:
-        json.dump(api_call, file, indent=4)
+        return json.dump(api_call, file, indent=4)
+
+
+def save_to_csv_not_flattened(filename, api_call):
+    from flatten_json import flatten
+    save_to_json('tmp', flatten(api_call))
+    with open('tmp.json') as f:
+        data = json.load(f)
+    df = pandas.Series(data).to_frame()
+    # save_to_csv_flattened(filename,api_call)
+    # os.remove('tmp.json')
+    return df.to_csv(filename + '.csv', index=True)
+
+
+def save_to_csv_flattened(filename, api_call):
+    save_to_json('tmp', api_call)
+    df = (pandas.DataFrame(api_call))
+    return df.to_csv(filename + '.csv', index=True)
+
+
+def save_to_csv(filename, api_call):
+    try:
+        save_to_csv_not_flattened(filename, api_call)
+        print('Not flattened - CSV created successfully')
+        return
+    except Exception as e:
+        print('JSON not flattened, trying to flatten...')
+        #print(e)
+    try:
+        save_to_csv_flattened(filename, api_call)
+        print('Flattened - CSV created successfully')
+        return
+    except Exception as e:
+        print('Error flattening JSON!')
+        #print(e)
+
+#a = generic_api_call('/api/v1/entity/services', False)
+a = generic_api_call('/api/v1/problem/feed', False)
+
+save_to_csv('example',a)
+
+# save_to_csv_not_flattened('a', a)
+#
+# # from flatten_json import flatten
+# # save_to_json('tmp', flatten(a))
+# # print(a)
+# # df = (pandas.DataFrame(api_call))
+# # os.remove('tmp.json')
+# # df.to_csv(filename + '.csv', index=True)
+
+# a = generic_api_call('/api/v1/problem/feed?relativeTime=30mins', True)
+# from flatten_json import flatten
+# ab = save_to_json('tmp', flatten(a))
+# with open('tmp.json') as f:
+#   data = json.load(f)
+# df = pandas.Series(data).to_frame()
+# print(df)
+# df.to_csv (r'a.csv', index=True)
